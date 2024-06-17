@@ -5,7 +5,8 @@ args=(
   -Dc_args='-Wno-error=deprecated -Wno-error=deprecated-declarations'
   -D{cdda,d3d-hwaccel,d3d11,dvdnav,jpeg,lcms2,libarchive}=enabled
   -D{libbluray,lua,shaderc,spirv-cross,uchardet,vapoursynth}=enabled
-  -D{libmpv,tests}=true
+  -D{libmpv,tests,prefer_static}=true
+  -Ddefault_library=static
 )
 
 [[ "$SYS" != "clang32" && "$SYS" != "mingw32" ]] && args+=(
