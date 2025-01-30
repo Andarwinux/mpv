@@ -243,6 +243,6 @@ meson setup --reconfigure build `
     -Dlibmpv=true `
     -Dtests=false `
     -Dgpl=true
-ninja -C build libmpv-2.dll
+ninja -C build mpv-2.dll
 cp ./build/subprojects/vulkan-loader/vulkan.dll ./build/vulkan-1.dll
 ./build/mpv.com -v --no-config
