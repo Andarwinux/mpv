@@ -237,5 +237,12 @@ meson setup build `
     -Dwayland=disabled `
     -Dx11=disabled
 ninja -C build mpv.exe mpv.com libmpv.a
+meson setup --reconfigure build `
+    --wrap-mode=forcefallback `
+    -Ddefault_library=shared `
+    -Dlibmpv=true `
+    -Dtests=false `
+    -Dgpl=true
+ninja -C build libmpv-2.dll
 cp ./build/subprojects/vulkan-loader/vulkan.dll ./build/vulkan-1.dll
 ./build/mpv.com -v --no-config
