@@ -38,6 +38,7 @@ jobs:
       CCACHE_MAXSIZE: 500M
       TARGET: ${{ matrix.arch }}-w64-mingw32
       RUST_TARGET: ${{ matrix.arch }}-pc-windows-gnu
+      __CARGO_TEST_CHANNEL_OVERRIDE_DO_NOT_USE_THIS: nightly
     strategy:
       fail-fast: false
       matrix:
@@ -62,7 +63,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          rustup target add ${{ env.RUST_TARGET }}
+          rustup component add rust-src
+          cargo install cargo-c --locked
           sudo dpkg --add-architecture i386
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y ccache g++-mingw-w64 gcc-multilib python3-pip nasm ninja-build pkgconf ${{ matrix.wine }} wine
