@@ -65,6 +65,7 @@ jobs:
         run: |
           rustup component add rust-src
           cargo install cargo-c --locked
+          
           sudo dpkg --add-architecture i386
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y ccache g++-mingw-w64 gcc-multilib python3-pip nasm ninja-build pkgconf ${{ matrix.wine }} wine
