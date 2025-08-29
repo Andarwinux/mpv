@@ -121,6 +121,9 @@ opts.add_cmake_defines({
     'CMAKE_MSVC_RUNTIME_LIBRARY': 'MultiThreaded',
     'BUILD_SHARED_LIBS': 'OFF',
     'BUILD_TESTING': 'OFF',
+    'JPEGXL_ENABLE_HWY_AVX3': 'ON',
+    'JPEGXL_ENABLE_HWY_AVX3_SPR': 'ON',
+    'JPEGXL_ENABLE_HWY_AVX3_ZEN4': 'ON'
 })
 libjxl_proj = cmake.subproject('libjxl-cmake', options: opts)
 libjxl_dep = declare_dependency(dependencies: [
@@ -215,7 +218,7 @@ meson setup build `
     --wrap-mode=forcefallback `
     -Ddefault_library=static `
     -Dlibmpv=true `
-    -Dtests=true `
+    -Dtests=false `
     -Dgpl=true `
     -Dffmpeg:gpl=enabled `
     -Dffmpeg:tests=enabled `
@@ -241,16 +244,17 @@ meson setup build `
     -Dxxhash:inline-all=true `
     -Dxxhash:cli=false `
     -Dluajit:amalgam=true `
+    -Dluajit:lua52compat=true `
+    -Dluajit:sysmalloc=true `
     -Dd3d11=enabled `
     -Dvulkan=enabled `
     -Djavascript=enabled `
     -Dwin32-smtc=enabled `
+    -Dwin32-subsystem=console `
     -Dlua=luajit `
     -Ddrm=disabled `
     -Dlibarchive=disabled `
     -Drubberband=disabled `
     -Dwayland=disabled `
     -Dx11=disabled
-ninja -C build mpv.exe mpv.com libmpv.a
-cp ./build/subprojects/vulkan-loader/vulkan.dll ./build/vulkan-1.dll
-./build/mpv.com -v --no-config
+ninja -C build mpv.exe libmpv.a
