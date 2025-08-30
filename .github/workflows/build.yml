@@ -4,59 +4,49 @@ on:
   workflow_dispatch:
 
 jobs:
-  win32:
+  win32-cross:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - target: x86_64-pc-windows-msvc
-            arch: "x64"
-            os: "windows-2025"
+          - os: ubuntu-24.04
+            host_arch: amd64
+            target: x86_64-pc-windows-msvc
+            arch: x86_64
+          - os: ubuntu-24.04
+            host_arch: amd64
+            target: aarch64-pc-windows-msvc
+            arch: aarch64
+          - os: ubuntu-24.04-arm64
+            host_arch: arm64
+            target: x86_64-pc-windows-msvc
+            arch: x86_64
+          - os: ubuntu-24.04-arm64
+            host_arch: arm64
+            target: aarch64-pc-windows-msvc
+            arch: aarch64
     env:
-      VS: "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise"
-      CC: "ccache clang"
-      CXX: "ccache clang++"
-      CC_LD: "lld-link"
-      CXX_LD: "lld-link"
-      CFLAGS: "-march=skylake -mno-gather -ffp-contract=fast -fno-math-errno -flto=thin -fuse-ld=lld -O3 -fvisibility-from-dllstorageclass -fvisibility-dllexport=hidden -ffunction-sections -fdata-sections -gcodeview-ghash -gno-codeview-command-line -w -Wno-unused-command-line-argument"
-      CXXFLAGS: "-march=skylake -mno-gather -ffp-contract=fast -fno-math-errno -flto=thin -fuse-ld=lld -O3 -fvisibility-from-dllstorageclass -fvisibility-dllexport=hidden -ffunction-sections -fdata-sections -gcodeview-ghash -gno-codeview-command-line -w -Wno-unused-command-line-argument"
-      LINK: "/subsystem:console,10.0 /osversion:10.0"
-      _LINK_: "/opt:icf,ref,lldtailmerge,lldlto=3,lldltocgo=3 /subsystem:console,10.0 /osversion:10.0 /filealign:4096 /timestamp:0 /release /debug:ghash,nodwarf,nosymtab /nodefaultlib:libucrt.lib /defaultlib:ucrt.lib"
-      WINDRES: "llvm-rc"
-      RUST_LD: "lld-link"
-      RUSTC: "rustc --target ${{ matrix.target }}"
-      CCACHE_BASEDIR: ${{ github.workspace }}
-      CCACHE_DIR: "${{ github.workspace }}\\.ccache"
-      CCACHE_MAXSIZE: 500M
+      ARCH: "${{ matrix.arch }}"
     steps:
-      - name: Disable autocrlf
-        run: |
-          git config --global core.autocrlf false
-          git config --global core.eol lf
-
       - uses: actions/checkout@v4
 
       - name: Get time
         id: get_time
-        run: |
-          "timestamp=$((Get-Date).Ticks)" >> $env:GITHUB_OUTPUT
-
-      - name: Restore cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{ matrix.target }}-${{ steps.get_time.outputs.timestamp }}
-          restore-keys: ${{ matrix.target }}-
+        run: echo "timestamp=`date +%s%N`" >> $GITHUB_OUTPUT
 
       - name: Install dependencies
         run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y python3-pip nasm ninja-build pkgconf golang msitools
           python -m pip install meson
-          choco install ccache nasm llvm golang
-          $env:GOBON = "$pwd"
-          go install go.chromium.org/luci/cipd/client/cmd/...@latest
-          ./cipd install fuchsia/third_party/clang/windows-amd64 latest -root "$pwd\fuchsia-clang"
-          ./ci/install-cmake.ps1 -arch ${{ matrix.arch }}
+          sudo GOBIN=/usr/bin go install go.chromium.org/luci/cipd/client/cmd/...@latest
+          sudo cipd install fuchsia/third_party/clang/linux-${{ matrix.host_arch }} latest -root /usr/local/fuchsia-clang
+          echo "PATH=/usr/local/fuchsia-clang/bin:$PATH" >> $GITHUB_ENV
+          git clone --depth 1 -b master https://github.com/mstorsjo/msvc-wine.git
+          python ./msvc-wine/vsdownload.py --dest $PWD/winsdk --accept-license
+          ./msvc-wine/install.sh $PWD/winsdk
+          echo "WINSDK=$PWD/winsdk" >> $GITHUB_ENV
 
       - name: Update Meson WrapDB
         run: |
@@ -68,15 +58,8 @@ jobs:
           meson wrap install zlib
 
       - name: Build
-        id: build
         run: |
-          $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -ne 'C:\Program Files\CMake\bin' -and `
-                                                             $_ -ne 'C:\Strawberry\c\bin' }) -join ';'
-          $env:PATH = "$pwd\cmake\bin;" + $env:PATH + ';C:\Program Files\NASM'
-          Import-Module "$env:VS\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
-          Enter-VsDevShell -VsInstallPath $env:VS -SkipAutomaticLocation -DevCmdArguments "-arch=${{ matrix.arch }} -host_arch=${{ matrix.arch }}"
-          $env:PATH = "$pwd\fuchsia-clang\bin;" + $env:PATH
-          ./ci/build-win32.ps1
+          ./ci/build-win32.sh
 
       - name: Print build log
         if: ${{ failure() && steps.build.outcome == 'failure' }}
@@ -85,14 +68,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: mpv-${{ matrix.target }}
+          name: mpv-${{ matrix.target }}-cross-on-${{ matrix.os }}
           path: |
             build/mpv.???
             !build/mpv.lib
-
-      - name: Save Cache
-        uses: actions/cache/save@v4
-        if: always()
-        with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{ matrix.target }}-${{ steps.get_time.outputs.timestamp }}
