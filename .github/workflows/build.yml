@@ -19,7 +19,7 @@ jobs:
       CXX: "ccache clang++"
       CC_LD: "lld-link"
       CXX_LD: "lld-link"
-      CFLAGS: "-march=skylake -mno-gather -ffp-contract=fast -fno-math-errno -flto=thin -fuse-ld=lld -O3 -Xclang -cfguard -Xclang -ehcontguard -fvisibility-from-dllstorageclass -fvisibility-dllexport=hidden -ffunction-sections -fdata-sections -gcodeview-ghash -gno-codeview-command-line -w -Wno-unused-command-line-argument"
+      CFLAGS: "-march=skylake -mno-gather -ffp-contract=fast -fno-math-errno -flto=thin -fuse-ld=lld -O3 -fvisibility-from-dllstorageclass -fvisibility-dllexport=hidden -ffunction-sections -fdata-sections -gcodeview-ghash -gno-codeview-command-line -w -Wno-unused-command-line-argument"
       CXXFLAGS: "-march=skylake -mno-gather -ffp-contract=fast -fno-math-errno -flto=thin -fuse-ld=lld -O3 -fvisibility-from-dllstorageclass -fvisibility-dllexport=hidden -ffunction-sections -fdata-sections -gcodeview-ghash -gno-codeview-command-line -w -Wno-unused-command-line-argument"
       LINK: "/subsystem:console,10.0 /osversion:10.0"
       _LINK_: "/opt:icf,ref,lldtailmerge,lldlto=3,lldltocgo=3 /subsystem:console,10.0 /osversion:10.0 /filealign:4096 /timestamp:0 /release /debug:ghash,nodwarf,nosymtab /nodefaultlib:libucrt.lib /defaultlib:ucrt.lib"
@@ -52,7 +52,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install meson
-          choco install ccache nasm llvm
+          choco install ccache nasm llvm golang
+          $env:GOBON = "$pwd"
+          go install go.chromium.org/luci/cipd/client/cmd/...@latest
+          ./cipd install fuchsia/third_party/clang/windows-amd64 latest -root "$pwd\fuchsia-clang"
           ./ci/install-cmake.ps1 -arch ${{ matrix.arch }}
 
       - name: Update Meson WrapDB
@@ -72,6 +75,7 @@ jobs:
           $env:PATH = "$pwd\cmake\bin;" + $env:PATH + ';C:\Program Files\NASM'
           Import-Module "$env:VS\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
           Enter-VsDevShell -VsInstallPath $env:VS -SkipAutomaticLocation -DevCmdArguments "-arch=${{ matrix.arch }} -host_arch=${{ matrix.arch }}"
+          $env:PATH = "$pwd\fuchsia-clang\bin;" + $env:PATH
           ./ci/build-win32.ps1
 
       - name: Print build log
