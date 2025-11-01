@@ -627,7 +627,7 @@ function read_options(opts, id, on_update, conf_override) {
             opts[key] = val;
         else if (type == "boolean" && (val == "yes" || val == "no"))
             opts[key] = (val == "yes");
-        else if (type == "number" && val.trim() != "" && !isNaN(val))
+        else if (type == "number" && val.trim() != "" && !mp_isnan(val))
             opts[key] = Number(val);
         else
             mp.msg.error(info, "Error: can't convert '" + val + "' to " + type);
